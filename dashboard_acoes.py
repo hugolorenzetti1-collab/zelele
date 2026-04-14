@@ -10,12 +10,23 @@ from threading import Timer
 from datetime import datetime, timedelta
 from abras_scraper import baixar_dados_abras
 from anfavea_loader import baixar_anfavea
+from abcr_loader import baixar_abcr
 
 # Cache dos dados da ABRAS (evita rebaixar toda hora)
 _CACHE_ABRAS = {"df": None}
 _CACHE_CAGED = {"serie": None}
 _CACHE_CEPEA = {}
 _CACHE_ANFAVEA = {"df": None}
+_CACHE_ABCR = {}
+
+def get_abcr_serie(codigo):
+    """codigo = 'Regiao|TIPO'"""
+    if codigo in _CACHE_ABCR:
+        return _CACHE_ABCR[codigo]
+    regiao, tipo = codigo.split("|")
+    s = baixar_abcr(regiao, tipo)
+    _CACHE_ABCR[codigo] = s
+    return s
 
 def get_anfavea_serie(codigo):
     """codigo no formato 'CATEGORIA|METRICA'"""
@@ -101,6 +112,10 @@ ativos = {
     "Autoveículos - Exportação Total (un)": {"fonte": "anfavea", "codigo": "AUTOVEÍCULOS TOTAL|Exportação", "unidade": "unidades", "tipo": "var_anual"},
     "Automóveis - Produção (un)": {"fonte": "anfavea", "codigo": "AUTOMÓVEIS|Produção", "unidade": "unidades", "tipo": "var_anual"},
     "Caminhões - Produção (un)": {"fonte": "anfavea", "codigo": "CAMINHÕES|Produção", "unidade": "unidades", "tipo": "var_anual"},
+    # --- FLUXO DE VEÍCULOS (ABCR) ---
+    "ABCR - Fluxo Total Brasil (índice)": {"fonte": "abcr", "codigo": "Brasil|TOTAL", "unidade": "pontos", "tipo": "var_anual"},
+    "ABCR - Veículos Leves Brasil (índice)": {"fonte": "abcr", "codigo": "Brasil|LEVES", "unidade": "pontos", "tipo": "var_anual"},
+    "ABCR - Veículos Pesados Brasil (índice)": {"fonte": "abcr", "codigo": "Brasil|PESADOS", "unidade": "pontos", "tipo": "var_anual"},
     # --- CONSUMO NOS LARES (ABRAS - direto do site, desde 2001) ---
     "Consumo nos Lares - ABRAS (média 12m YoY real)": {"fonte": "abras", "codigo": "real_yoy", "unidade": "%", "tipo": "abras_mm12"},
     "Vendas Supermercados - Real (índice)": {"fonte": "ipea", "codigo": "PMC12_VRSUPTN12", "unidade": "índice"},
@@ -195,6 +210,14 @@ def buscar_dados(ativo_info, start):
         except Exception:
             return pd.Series(dtype=float)
 
+    elif fonte == "abcr":
+        try:
+            s = get_abcr_serie(codigo)
+            s = s[s.index >= start]
+            return s
+        except Exception:
+            return pd.Series(dtype=float)
+
     return pd.Series(dtype=float)
 
 
@@ -212,6 +235,7 @@ categorias = {
     "MERCADO DE TRABALHO": [k for k in ativos if "CAGED" in k],
     "ENERGIA": [k for k in ativos if "Energia" in k],
     "AUTOVEÍCULOS (ANFAVEA)": [k for k in ativos if "Autoveículos" in k or "Automóveis" in k or "Caminhões" in k],
+    "RODOVIAS (ABCR)": [k for k in ativos if "ABCR" in k],
     "COMMODITIES INTERNACIONAIS": [k for k in ativos if "CME" in k or "Coffee" in k or "Petróleo" in k or "Ouro" in k or "Prata" in k or "Internacional" in k],
     "ÍNDICES / CÂMBIO": [k for k in ativos if "Real" in k or "Ibovespa" in k or "S&P" in k or "Bitcoin" in k or "Nubank" in k],
 }
