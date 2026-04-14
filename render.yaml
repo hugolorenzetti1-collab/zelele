@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: dash-claudinho-zelele
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn dashboard_acoes:server --timeout 120 --workers 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.10

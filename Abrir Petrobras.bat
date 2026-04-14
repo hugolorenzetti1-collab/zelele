@@ -1,0 +1,3 @@
+@echo off
+echo Atualizando grafico da Petrobras...
+python "%~dp0grafico_petrobras_interativo.py"
