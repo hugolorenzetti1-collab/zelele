@@ -37,14 +37,21 @@ def get_anfavea_serie(codigo):
     ultimo_real = s[s > 0].index.max()
     return s.loc[:ultimo_real]
 
-def get_cepea_serie(cepea_id):
-    if cepea_id in _CACHE_CEPEA:
-        return _CACHE_CEPEA[cepea_id]
+def get_cepea_serie(codigo):
+    """codigo pode ser:
+       - só um id (ex.: '2') → usa URL de boi-gordo (compat antiga)
+       - 'slug|id' (ex.: 'milho|77') → usa o slug correto"""
+    if codigo in _CACHE_CEPEA:
+        return _CACHE_CEPEA[codigo]
     import requests, os, tempfile
-    url = f"https://cepea.org.br/br/indicador/series/boi-gordo.aspx?id={cepea_id}"
+    if "|" in codigo:
+        slug, cepea_id = codigo.split("|", 1)
+    else:
+        slug, cepea_id = "boi-gordo", codigo
+    url = f"https://cepea.org.br/br/indicador/series/{slug}.aspx?id={cepea_id}"
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"}
     r = requests.get(url, headers=headers, timeout=60)
-    tmp_path = os.path.join(tempfile.gettempdir(), f"cepea_{cepea_id}.xls")
+    tmp_path = os.path.join(tempfile.gettempdir(), f"cepea_{slug}_{cepea_id}.xls")
     with open(tmp_path, "wb") as f:
         f.write(r.content)
     df_raw = pd.read_excel(
@@ -57,7 +64,7 @@ def get_cepea_serie(cepea_id):
     df_raw["Data"] = pd.to_datetime(df_raw["Data"], format="%d/%m/%Y", errors="coerce")
     df_raw = df_raw.dropna(subset=["Data"]).set_index("Data").sort_index()
     serie = pd.to_numeric(df_raw["Valor_BRL"], errors="coerce").dropna()
-    _CACHE_CEPEA[cepea_id] = serie
+    _CACHE_CEPEA[codigo] = serie
     return serie
 
 def get_abras_df():
@@ -96,7 +103,8 @@ ativos = {
     "Localiza (RENT3)": {"fonte": "yf", "codigo": "RENT3.SA", "unidade": "R$"},
     # --- COMMODITIES BRASIL (IPEA/DERAL) ---
     "Boi Gordo - Brasil (R$/arroba)": {"fonte": "ipea", "codigo": "DERAL12_PRBGO12", "unidade": "R$/arroba"},
-    "Boi Gordo - CEPEA/B3 diário (R$/arroba)": {"fonte": "cepea", "codigo": "2", "unidade": "R$/arroba"},
+    "Boi Gordo - CEPEA/B3 diário (R$/arroba)": {"fonte": "cepea", "codigo": "boi-gordo|2", "unidade": "R$/arroba"},
+    "Milho - CEPEA/ESALQ diário (R$/60kg)": {"fonte": "cepea", "codigo": "milho|77", "unidade": "R$/60kg"},
     "Milho - Brasil (R$/60kg)": {"fonte": "ipea", "codigo": "DERAL12_PRMI12", "unidade": "R$/60kg"},
     "Soja - Brasil (R$/60kg)": {"fonte": "ipea", "codigo": "DERAL12_PRSO12", "unidade": "R$/60kg"},
     "Milho Atacado SP (R$/60kg)": {"fonte": "ipea", "codigo": "DEPAE12_ATMI12", "unidade": "R$/60kg"},
