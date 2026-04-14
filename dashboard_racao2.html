@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Interativo - RAÇÃO 2 | Fazenda Lorenzetti</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
+  h1 { color: #22c55e; margin-bottom: 6px; }
+  .subtitle { color: #94a3b8; margin-bottom: 16px; font-size: 14px; }
+  .legend { display:flex; gap:16px; margin-bottom:20px; font-size:13px; }
+  .legend span { display:flex; align-items:center; gap:6px; }
+  .dot { width:14px; height:14px; border-radius:3px; display:inline-block; }
+  .dot.gray { background:#64748b; }
+  .dot.blue { background:#3b82f6; }
+
+  .grid { display: grid; gap: 12px; }
+  .section { background:#1e293b; border-radius:10px; padding:18px; margin-bottom:18px; }
+  .section h2 { color:#f59e0b; font-size:16px; margin-bottom:14px; border-bottom:1px solid #334155; padding-bottom:8px; }
+
+  .cards { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+
+  .card { padding: 12px 14px; border-radius: 8px; border-left: 4px solid; }
+  .card.var { background: #334155; border-color: #94a3b8; }
+  .card.locked { background: #172554; border-color: #3b82f6; }
+  .card .label { font-size: 11px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card .unit { font-size: 11px; color: #94a3b8; margin-left:4px; }
+  .card input { width:100%; background:#0f172a; color:#f1f5f9; border:1px solid #475569; border-radius:4px; padding:6px 8px; font-size:18px; font-weight:bold; margin-top:6px; }
+  .card input:focus { outline:none; border-color:#22c55e; }
+  .card .value { font-size: 20px; font-weight: bold; color: #60a5fa; margin-top: 6px; }
+  .card.hl .value { color:#22c55e; }
+  .card.neg .value { color:#ef4444; }
+
+  .charts { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+  .chart-card { background:#0f172a; border:1px solid #334155; border-radius:10px; padding:16px; min-height: 340px; }
+  .chart-card h3 { margin-bottom: 10px; color: #cbd5e1; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h1>Dashboard Interativo – RAÇÃO 2</h1>
+<p class="subtitle">MJ Nutrição Animal · Cliente: Lorenzetti · Altere os campos <b>cinzas</b> e os <b>azuis</b> recalculam automaticamente.</p>
+<div class="legend">
+  <span><i class="dot gray"></i> Variável (editável)</span>
+  <span><i class="dot blue"></i> Travado (calculado)</span>
+</div>
+
+<!-- ENTRADAS E PERÍODO -->
+<div class="section">
+  <h2>Compra</h2>
+  <div class="grid cards">
+    <div class="card var"><div class="label">Início</div><input type="date" id="inicio" value="2026-03-28"></div>
+    <div class="card var"><div class="label">Dias <span class="unit">(O2)</span></div><input type="number" id="dias" value="120"></div>
+    <div class="card var"><div class="label">GMD <span class="unit">kg/dia</span></div><input type="number" step="0.01" id="gmd" value="1.5"></div>
+    <div class="card var"><div class="label">Animais</div><input type="number" id="animais" value="100"></div>
+    <div class="card var"><div class="label">Peso Entrada <span class="unit">kg</span></div><input type="number" id="pesoEntrada" value="405"></div>
+    <div class="card var"><div class="label">Custo da @ (compra)</div><input type="number" step="0.01" id="custoArroba" value="385"></div>
+    <div class="card var"><div class="label">Lotação</div><input type="number" step="0.1" id="lotacao" value="5"></div>
+    <div class="card locked"><div class="label">Fim</div><div class="value" id="fim">–</div></div>
+    <div class="card locked"><div class="label">Ganho no Período <span class="unit">kg</span></div><div class="value" id="ganho">–</div></div>
+    <div class="card locked"><div class="label">Peso Saída <span class="unit">kg</span></div><div class="value" id="pesoSaida">–</div></div>
+    <div class="card locked"><div class="label">Peso Médio <span class="unit">kg</span></div><div class="value" id="pm">–</div></div>
+  </div>
+</div>
+
+<!-- FÓRMULA -->
+<div class="section">
+  <h2>Fórmula (% Inclusão & Custo Insumo R$/kg)</h2>
+  <div class="grid cards">
+    <div class="card var"><div class="label">Milho %</div><input type="number" step="0.01" id="pMilho" value="0.75"></div>
+    <div class="card var"><div class="label">Núcleo RC 700 %</div><input type="number" step="0.01" id="pNucleo" value="0.03"></div>
+    <div class="card var"><div class="label">Torta de Algodão %</div><input type="number" step="0.01" id="pTorta" value="0.17"></div>
+    <div class="card var"><div class="label">Sal Branco %</div><input type="number" step="0.01" id="pSal" value="0"></div>
+    <div class="card var"><div class="label">DDG %</div><input type="number" step="0.01" id="pDDG" value="0.05"></div>
+    <div class="card locked"><div class="label">Total Inclusão</div><div class="value" id="totalIncl">–</div></div>
+
+    <div class="card var"><div class="label">Milho Saca <span class="unit">R$/60kg</span></div><input type="number" step="0.01" id="milhoSaca" value="45"></div>
+    <div class="card locked"><div class="label">Milho <span class="unit">R$/kg</span></div><div class="value" id="cMilho">–</div></div>
+    <div class="card var"><div class="label">Núcleo R$/kg</div><input type="number" step="0.01" id="cNucleo" value="4.5"></div>
+    <div class="card var"><div class="label">Torta R$/kg</div><input type="number" step="0.01" id="cTorta" value="0.95"></div>
+    <div class="card var"><div class="label">Sal Branco Saca <span class="unit">R$/25kg</span></div><input type="number" step="0.01" id="salSaca" value="25"></div>
+    <div class="card locked"><div class="label">Sal <span class="unit">R$/kg</span></div><div class="value" id="cSal">–</div></div>
+    <div class="card var"><div class="label">DDG R$/kg</div><input type="number" step="0.01" id="cDDG" value="1.2"></div>
+    <div class="card var"><div class="label">Operacional R$/kg</div><input type="number" step="0.01" id="operacional" value="0.15"></div>
+    <div class="card locked"><div class="label">Custo Ração <span class="unit">R$/ton</span></div><div class="value" id="custoRacao">–</div></div>
+  </div>
+</div>
+
+<!-- COMPRA E VENDA -->
+<div class="section">
+  <h2>Venda & Taxas</h2>
+  <div class="grid cards">
+    <div class="card var"><div class="label">Valor da @ na Venda</div><input type="number" step="0.01" id="valorArroba" value="360"></div>
+    <div class="card var"><div class="label">Rend. Frigorífico</div><input type="number" step="0.01" id="rendFrig" value="0.55"></div>
+    <div class="card var"><div class="label">Consumo % do PV</div><input type="number" step="0.01" id="comissao" value="2.2"><div class="unit">%</div></div>
+    <div class="card var"><div class="label">Taxas/Outros R$/boi</div><input type="number" id="taxasBoi" value="100"></div>
+    <div class="card var"><div class="label">Diferença de Base</div><input type="number" step="0.1" id="difBase" value="9"><div class="unit">%</div></div>
+    <div class="card locked"><div class="label">Total Compra <span class="unit">R$/boi</span></div><div class="value" id="totalCompra">–</div></div>
+    <div class="card locked"><div class="label">Consumo Estimado <span class="unit">kg/dia</span></div><div class="value" id="consumo">–</div></div>
+    <div class="card locked"><div class="label">Diária <span class="unit">R$</span></div><div class="value" id="diaria">–</div></div>
+    <div class="card locked"><div class="label">@ no Frigorífico</div><div class="value" id="arrobaFrig">–</div></div>
+    <div class="card locked"><div class="label">Valor por Boi <span class="unit">venda</span></div><div class="value" id="valorBoi">–</div></div>
+  </div>
+</div>
+
+<!-- RESULTADO -->
+<div class="section">
+  <h2>Resultado Financeiro</h2>
+  <div class="grid cards">
+    <div class="card locked"><div class="label">Custo da Engorda</div><div class="value" id="custoEngorda">–</div></div>
+    <div class="card locked"><div class="label">Custo Engorda+Taxas+Compra</div><div class="value" id="custoTotal">–</div></div>
+    <div class="card locked hl"><div class="label">Lucro Líquido / Boi</div><div class="value" id="lucro">–</div></div>
+    <div class="card locked hl"><div class="label">Lucro no Período</div><div class="value" id="lucroPct">–</div></div>
+    <div class="card locked hl"><div class="label">Lucro ao Mês</div><div class="value" id="lucroMes">–</div></div>
+    <div class="card locked"><div class="label">Arrobas Produzidas</div><div class="value" id="arrobasProd">–</div></div>
+    <div class="card locked"><div class="label">Custo @ Produzidas</div><div class="value" id="custoArrProd">–</div></div>
+    <div class="card locked"><div class="label">Custo @ Totais</div><div class="value" id="custoArrTot">–</div></div>
+    <div class="card locked"><div class="label">Preço pra Put</div><div class="value" id="precoPut">–</div></div>
+    <div class="card locked"><div class="label">Spread @Boi × Milho</div><div class="value" id="spread">–</div></div>
+    <div class="card locked"><div class="label">Giros por Ano</div><div class="value" id="giros">–</div></div>
+    <div class="card locked"><div class="label">GMC</div><div class="value" id="gmc">–</div></div>
+    <div class="card locked hl"><div class="label">Lucro ao Ano <span class="unit">R$/ha</span></div><div class="value" id="lucroAno">–</div></div>
+  </div>
+</div>
+
+<!-- INSUMOS UTILIZADOS -->
+<div class="section">
+  <h2>Insumos Utilizados & Investimento Total</h2>
+  <div class="grid cards">
+    <div class="card locked"><div class="label">Total Insumos R$</div><div class="value" id="tInsumos">–</div></div>
+    <div class="card locked"><div class="label">Total Gado R$</div><div class="value" id="tGado">–</div></div>
+    <div class="card locked"><div class="label">Outros R$</div><div class="value" id="tOutros">–</div></div>
+    <div class="card locked hl"><div class="label">Investimento Total R$</div><div class="value" id="tTotal">–</div></div>
+    <div class="card locked hl"><div class="label">Lucro Total do Lote <span class="unit">(Lucro × Animais)</span></div><div class="value" id="lucroLote">–</div></div>
+  </div>
+</div>
+
+<!-- GRÁFICOS -->
+<div class="section">
+  <h2>Gráficos</h2>
+  <div class="grid charts">
+    <div class="chart-card"><h3>Composição da Fórmula (%)</h3><canvas id="formulaChart"></canvas></div>
+    <div class="chart-card"><h3>Investimento (R$)</h3><canvas id="investChart"></canvas></div>
+    <div class="chart-card"><h3>Custo por Insumo (R$)</h3><canvas id="insumoChart"></canvas></div>
+    <div class="chart-card"><h3>Evolução de Peso (kg)</h3><canvas id="pesoChart"></canvas></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt  = (v, d=2) => isFinite(v) ? v.toLocaleString('pt-BR', {minimumFractionDigits:d, maximumFractionDigits:d}) : '–';
+const money = v => 'R$ ' + fmt(v, 2);
+const pct   = v => fmt(v*100, 2) + '%';
+
+let charts = {};
+
+function calc() {
+  // Inputs
+  const inicio = new Date($('inicio').value);
+  const dias = +$('dias').value;
+  const gmd = +$('gmd').value;
+  const animais = +$('animais').value;
+  const pesoEntrada = +$('pesoEntrada').value;
+  const rendFrig = +$('rendFrig').value;
+
+  const pMilho=+$('pMilho').value, pNucleo=+$('pNucleo').value, pTorta=+$('pTorta').value, pSal=+$('pSal').value, pDDG=+$('pDDG').value;
+  const cNucleo=+$('cNucleo').value, cTorta=+$('cTorta').value, cDDG=+$('cDDG').value;
+  const milhoSaca=+$('milhoSaca').value, salSaca=+$('salSaca').value;
+  const operacional=+$('operacional').value;
+
+  const custoArroba=+$('custoArroba').value, valorArroba=+$('valorArroba').value;
+  const comissao=+$('comissao').value/100, taxasBoi=+$('taxasBoi').value;
+  const difBase=+$('difBase').value/100, lotacao=+$('lotacao').value;
+
+  // Travados
+  const cMilho = milhoSaca/60;
+  const cSal = salSaca/25;
+  const totalIncl = pMilho+pNucleo+pTorta+pSal+pDDG;
+  const custoKg = cMilho*pMilho + cNucleo*pNucleo + cTorta*pTorta + cSal*pSal + cDDG*pDDG; // R$/kg
+  const custoRacao = (custoKg + operacional) * 1000; // R$/ton
+
+  const ganho = gmd*dias;
+  const pesoSaida = pesoEntrada + ganho;
+  const pm = (pesoSaida + pesoEntrada)/2;
+  const consumo = comissao * pm;
+  const diaria = consumo * custoRacao / 1000;
+  const custoEngorda = diaria * dias;
+
+  const arrobaFrig = rendFrig * pesoSaida / 15;
+  const valorBoi = arrobaFrig * valorArroba;
+  const totalCompra = pesoEntrada/30 * custoArroba;
+  const custoTotal = custoEngorda + totalCompra + taxasBoi;
+  const lucro = valorBoi - custoTotal;
+  const lucroPct = lucro / custoTotal;
+  const lucroMes = lucroPct / (dias/30.5);
+
+  const arrobasProd = arrobaFrig - (pesoEntrada/30);
+  const custoArrProd = custoEngorda / arrobasProd;
+  const custoArrTot = custoTotal / arrobaFrig;
+  const precoPut = custoArrTot * difBase + custoArrTot;
+  const spread = valorArroba / (cMilho*60);
+  const giros = 365/dias;
+  const gmc = arrobasProd/dias * 15;
+  const lucroAno = giros * lotacao * lucro;
+
+  // Insumos (ton por lote)
+  const qMilho = pMilho*consumo*dias*animais/1000;
+  const qNucleo = pNucleo*consumo*dias*animais/1000;
+  const qTorta = pTorta*consumo*dias*animais/1000;
+  const qDDG = pDDG*consumo*dias*animais/1000;
+  const qSal = pSal*consumo*dias*animais/1000;
+  const vMilho=qMilho*cMilho*1000, vNucleo=qNucleo*cNucleo*1000, vTorta=qTorta*cTorta*1000, vDDG=qDDG*cDDG*1000, vSal=qSal*cSal*1000;
+  const tInsumos = vMilho+vNucleo+vTorta+vDDG+vSal;
+  const tGado = pesoEntrada*custoArroba*animais/30;
+  const tOutros = taxasBoi*animais;
+  const tTotal = tInsumos+tGado+tOutros;
+
+  // Fim
+  const fim = new Date(inicio.getTime() + dias*86400000);
+
+  // Render
+  $('fim').textContent = fim.toLocaleDateString('pt-BR');
+  $('ganho').textContent = fmt(ganho,1);
+  $('pesoSaida').textContent = fmt(pesoSaida,1);
+  $('pm').textContent = fmt(pm,1);
+  $('totalIncl').textContent = fmt(totalIncl,2);
+  $('cMilho').textContent = money(cMilho);
+  $('cSal').textContent = money(cSal);
+  $('custoRacao').textContent = money(custoRacao);
+  $('totalCompra').textContent = money(totalCompra);
+  $('consumo').textContent = fmt(consumo,2);
+  $('diaria').textContent = money(diaria);
+  $('arrobaFrig').textContent = fmt(arrobaFrig,2);
+  $('valorBoi').textContent = money(valorBoi);
+  $('custoEngorda').textContent = money(custoEngorda);
+  $('custoTotal').textContent = money(custoTotal);
+  $('lucro').textContent = money(lucro);
+  $('lucroPct').textContent = pct(lucroPct);
+  $('lucroMes').textContent = pct(lucroMes);
+  $('arrobasProd').textContent = fmt(arrobasProd,2);
+  $('custoArrProd').textContent = money(custoArrProd);
+  $('custoArrTot').textContent = money(custoArrTot);
+  $('precoPut').textContent = money(precoPut);
+  $('spread').textContent = fmt(spread,2);
+  $('giros').textContent = fmt(giros,2);
+  $('gmc').textContent = fmt(gmc,2);
+  $('lucroAno').textContent = money(lucroAno);
+
+  $('tInsumos').textContent = money(tInsumos);
+  $('tGado').textContent = money(tGado);
+  $('tOutros').textContent = money(tOutros);
+  $('tTotal').textContent = money(tTotal);
+  $('lucroLote').textContent = money(lucro*animais);
+
+  updateCharts({pMilho,pNucleo,pTorta,pSal,pDDG, vMilho,vNucleo,vTorta,vDDG,vSal, tInsumos,tGado,tOutros, pesoEntrada,gmd,dias});
+}
+
+function updateCharts(d) {
+  const palette = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7'];
+  const axis = { ticks:{color:'#cbd5e1'}, grid:{color:'#334155'} };
+
+  if (charts.f) charts.f.destroy();
+  charts.f = new Chart($('formulaChart'), {
+    type:'doughnut',
+    data:{labels:['Milho','Núcleo','Torta','Sal','DDG'],
+      datasets:[{data:[d.pMilho*100,d.pNucleo*100,d.pTorta*100,d.pSal*100,d.pDDG*100], backgroundColor:palette}]},
+    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}}}
+  });
+
+  if (charts.i) charts.i.destroy();
+  charts.i = new Chart($('investChart'), {
+    type:'pie',
+    data:{labels:['Gado','Insumos','Outros'],
+      datasets:[{data:[d.tGado,d.tInsumos,d.tOutros], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]},
+    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}}}
+  });
+
+  if (charts.c) charts.c.destroy();
+  charts.c = new Chart($('insumoChart'), {
+    type:'bar',
+    data:{labels:['Milho','Núcleo','Torta','DDG','Sal'],
+      datasets:[{label:'R$', data:[d.vMilho,d.vNucleo,d.vTorta,d.vDDG,d.vSal], backgroundColor:palette}]},
+    options:{plugins:{legend:{display:false}}, scales:{x:axis,y:axis}}
+  });
+
+  if (charts.p) charts.p.destroy();
+  const steps = [0, Math.round(d.dias*0.25), Math.round(d.dias*0.5), Math.round(d.dias*0.75), d.dias];
+  charts.p = new Chart($('pesoChart'), {
+    type:'line',
+    data:{labels:steps.map(x=>`Dia ${x}`),
+      datasets:[{label:'Peso (kg)', data:steps.map(x=>d.pesoEntrada+d.gmd*x),
+        borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.15)', fill:true, tension:0.3, pointRadius:5}]},
+    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}}, scales:{x:axis,y:axis}}
+  });
+}
+
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', calc));
+calc();
+</script>
+
+</body>
+</html>
