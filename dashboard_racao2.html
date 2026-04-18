@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Dashboard Interativo - RAÇÃO 2 | Fazenda Lorenzetti</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
@@ -35,15 +36,24 @@
   .charts { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
   .chart-card { background:#0f172a; border:1px solid #334155; border-radius:10px; padding:16px; min-height: 340px; }
   .chart-card h3 { margin-bottom: 10px; color: #cbd5e1; font-size: 14px; }
+
+  .header { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:16px; }
+  .header-text { flex:1; }
+  .header-logo { height:110px; width:auto; border-radius:8px; flex-shrink:0; }
 </style>
 </head>
 <body>
 
-<h1>Dashboard Interativo – RAÇÃO 2</h1>
-<p class="subtitle">MJ Nutrição Animal · Cliente: Lorenzetti · Altere os campos <b>cinzas</b> e os <b>azuis</b> recalculam automaticamente.</p>
-<div class="legend">
-  <span><i class="dot gray"></i> Variável (editável)</span>
-  <span><i class="dot blue"></i> Travado (calculado)</span>
+<div class="header">
+  <div class="header-text">
+    <h1>Dashboard Interativo – RAÇÃO 2</h1>
+    <p class="subtitle">Feito por Hugo Lorenzetti · Altere os campos <b>cinzas</b> e os <b>azuis</b> recalculam automaticamente.</p>
+    <div class="legend">
+      <span><i class="dot gray"></i> Variável (editável)</span>
+      <span><i class="dot blue"></i> Travado (calculado)</span>
+    </div>
+  </div>
+  <img src="logo_hl.png" alt="HL - Compra e Venda de Bovinos" class="header-logo">
 </div>
 
 <!-- ENTRADAS E PERÍODO -->
@@ -260,12 +270,23 @@ function updateCharts(d) {
   const palette = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7'];
   const axis = { ticks:{color:'#cbd5e1'}, grid:{color:'#334155'} };
 
+  const pieDataLabels = {
+    color:'#0f172a',
+    font:{weight:'bold', size:12},
+    formatter:(val, ctx) => {
+      const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
+      const p = total ? (val/total*100) : 0;
+      return p < 3 ? '' : p.toFixed(1) + '%';
+    }
+  };
+
   if (charts.f) charts.f.destroy();
   charts.f = new Chart($('formulaChart'), {
     type:'doughnut',
     data:{labels:['Milho','Núcleo','Torta','Sal','DDG'],
       datasets:[{data:[d.pMilho*100,d.pNucleo*100,d.pTorta*100,d.pSal*100,d.pDDG*100], backgroundColor:palette}]},
-    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}}}
+    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}, datalabels: pieDataLabels}},
+    plugins:[ChartDataLabels]
   });
 
   if (charts.i) charts.i.destroy();
@@ -273,7 +294,8 @@ function updateCharts(d) {
     type:'pie',
     data:{labels:['Gado','Insumos','Outros'],
       datasets:[{data:[d.tGado,d.tInsumos,d.tOutros], backgroundColor:['#22c55e','#f59e0b','#ef4444']}]},
-    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}}}
+    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}, datalabels: pieDataLabels}},
+    plugins:[ChartDataLabels]
   });
 
   if (charts.c) charts.c.destroy();
@@ -281,7 +303,7 @@ function updateCharts(d) {
     type:'bar',
     data:{labels:['Milho','Núcleo','Torta','DDG','Sal'],
       datasets:[{label:'R$', data:[d.vMilho,d.vNucleo,d.vTorta,d.vDDG,d.vSal], backgroundColor:palette}]},
-    options:{plugins:{legend:{display:false}}, scales:{x:axis,y:axis}}
+    options:{plugins:{legend:{display:false}, datalabels:{display:false}}, scales:{x:axis,y:axis}}
   });
 
   if (charts.p) charts.p.destroy();
@@ -291,7 +313,7 @@ function updateCharts(d) {
     data:{labels:steps.map(x=>`Dia ${x}`),
       datasets:[{label:'Peso (kg)', data:steps.map(x=>d.pesoEntrada+d.gmd*x),
         borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.15)', fill:true, tension:0.3, pointRadius:5}]},
-    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}}, scales:{x:axis,y:axis}}
+    options:{plugins:{legend:{labels:{color:'#e2e8f0'}}, datalabels:{display:false}}, scales:{x:axis,y:axis}}
   });
 }
 
